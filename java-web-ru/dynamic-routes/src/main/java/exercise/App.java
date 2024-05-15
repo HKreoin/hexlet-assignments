@@ -21,7 +21,9 @@ public final class App {
         // BEGIN
         app.get("/companies/{id}", ctx -> {
             var id = ctx.pathParamAsClass("id", String.class).getOrDefault("");
-            var result = COMPANIES.stream().filter(map -> map.containsValue(id)).findFirst().orElseThrow(() -> new NotFoundResponse("Entity with id = " + id + " not found"));
+            var result = COMPANIES.stream().filter(map ->
+                map.containsValue(id)).findFirst().orElseThrow(() ->
+                    new NotFoundResponse("Entity with id = " + id + " not found"));
             ctx.json(result);
         });
         // END
