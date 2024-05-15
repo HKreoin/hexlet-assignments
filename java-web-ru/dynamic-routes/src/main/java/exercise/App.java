@@ -23,7 +23,7 @@ public final class App {
             var id = ctx.pathParamAsClass("id", String.class).getOrDefault("");
             var result = COMPANIES.stream().filter(map ->
                 map.containsValue(id)).findFirst().orElseThrow(() ->
-                    new NotFoundResponse("Entity with id = " + id + " not found"));
+                    new NotFoundResponse("Company not found"));
             ctx.json(result);
         });
         // END
