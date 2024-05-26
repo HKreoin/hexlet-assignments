@@ -3,8 +3,8 @@ package exercise;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
-import io.javalin.testtools.JavalinTest;
 import io.javalin.Javalin;
+import io.javalin.testtools.JavalinTest;
 
 class AppTest {
 
@@ -16,43 +16,52 @@ class AppTest {
     }
 
     @Test
-    void testRootPage() throws Exception {
+    void testMainPage() throws Exception {
+
         JavalinTest.test(app, (server, client) -> {
-            assertThat(client.get("/").code()).isEqualTo(200);
+            var response = client.get("/");
+            assertThat(response.code()).isEqualTo(200);
+            assertThat(response.body().string()).contains("/", "/users");
         });
     }
 
     @Test
-    void testListUsers() throws Exception {
+    void testUsersPage() throws Exception {
 
         JavalinTest.test(app, (server, client) -> {
             var response = client.get("/users");
             assertThat(response.code()).isEqualTo(200);
             assertThat(response.body().string())
-                .contains("Bobbi", "Wehner")
-                .contains("Will", "Casper");
+                .contains("Wehner", "Casper", "Ward")
+                .contains("/", "/users");
         });
     }
 
     @Test
-    void testShowUser1() throws Exception {
+    void testUserPage1() throws Exception {
+
         JavalinTest.test(app, (server, client) -> {
             var response = client.get("/users/1");
             assertThat(response.code()).isEqualTo(200);
             assertThat(response.body().string())
-                .contains("Pearl", "Schultz")
-                .doesNotContain("Bobbi", "Wehner");
+                .contains("/", "/users")
+                .contains("Pearl")
+                .contains("Schultz")
+                .doesNotContain("Wehner");
         });
     }
 
     @Test
-    void testShowUser2() throws Exception {
+    void testUserPage2() throws Exception {
+
         JavalinTest.test(app, (server, client) -> {
             var response = client.get("/users/5");
             assertThat(response.code()).isEqualTo(200);
             assertThat(response.body().string())
-                .contains("Minerva", "Altenwerth")
-                .doesNotContain("Ilse", "Roob");
+                .contains("/", "/users")
+                .contains("Minerva")
+                .contains("Altenwerth")
+                .doesNotContain("Roob");
         });
     }
 }

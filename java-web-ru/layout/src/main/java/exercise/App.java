@@ -11,7 +11,6 @@ import io.javalin.rendering.template.JavalinJte;
 
 public final class App {
 
-    // Каждый пользователь представлен объектом класса User
     private static final List<User> USERS = Data.getUsers();
 
     public static Javalin getApp() {
@@ -21,21 +20,23 @@ public final class App {
             config.fileRenderer(new JavalinJte());
         });
 
-        // BEGIN
-        app.get("/users", ctx -> {
-            var header = "Все пользователи";
-            var page = new UsersPage(USERS, header);
-            ctx.render("users/index.jte", model("page", page));
-        });
-
         app.get("/users/{id}", ctx -> {
-            int id = ctx.pathParamAsClass("id", Integer.class).get();
-            var user = USERS.stream().filter(u -> u.getId() == id).findFirst()
-            .orElseThrow(() -> new NotFoundResponse("Entity with id = " + id + " not found"));
+            var id = ctx.pathParamAsClass("id", Long.class).get();
+
+            User user = USERS.stream()
+                .filter(u -> id.equals(u.getId()))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundResponse("User not found"));
+
             var page = new UserPage(user);
             ctx.render("users/show.jte", model("page", page));
         });
-        // END
+
+        app.get("/users", ctx -> {
+            var page = new UsersPage(USERS);
+            ctx.render("users/index.jte", model("page", page));
+
+        });
 
         app.get("/", ctx -> {
             ctx.render("index.jte");
