@@ -6,7 +6,7 @@ public class LabelTag implements TagInterface {
     private final TagInterface tag;
 
     public LabelTag(String label, TagInterface tag) {
-        this.label= label;
+        this.label = label;
         this.tag = tag;
     }
 
