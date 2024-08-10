@@ -2,13 +2,10 @@ package exercise;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
 import io.javalin.Javalin;
+import io.javalin.testtools.JavalinTest;
 import exercise.repository.PostRepository;
 import exercise.model.Post;
 
@@ -18,128 +15,118 @@ class AppTest {
     private static String baseUrl;
     private static Post existingPost;
 
-    @BeforeAll
-    public static void beforeAll() {
-        app = App.getApp();
-        app.start(0);
-        int port = app.port();
-        baseUrl = "http://localhost:" + port;
-    }
-
-    @AfterAll
-    public static void afterAll() {
-        app.stop();
-    }
-
     @BeforeEach
     public void clear() {
         PostRepository.clear();
         existingPost = new Post("test name", "test body 1");
         PostRepository.save(existingPost);
+        app = App.getApp();
     }
 
     @Test
     void testRootPage() throws Exception {
-        HttpResponse<String> response = Unirest.get(baseUrl + "/").asString();
-        assertThat(response.getStatus()).isEqualTo(200);
+        JavalinTest.test(app, (server, client) -> {
+            assertThat(client.get("/").code()).isEqualTo(200);
+        });
     }
 
     @Test
     void testListPosts() throws Exception {
-        HttpResponse<String> response = Unirest.get(baseUrl + "/posts").asString();
-        assertThat(response.getStatus()).isEqualTo(200);
+        JavalinTest.test(app, (server, client) -> {
+            assertThat(client.get("/posts").code()).isEqualTo(200);
+        });
     }
 
     @Test
     void testBuildPost() throws Exception {
-        HttpResponse<String> response = Unirest.get(baseUrl + "/posts/build").asString();
-        assertThat(response.getStatus()).isEqualTo(200);
+        JavalinTest.test(app, (server, client) -> {
+            assertThat(client.get("/posts/build").code()).isEqualTo(200);
+        });
     }
 
     @Test
     void testCreatePost() throws Exception {
-        HttpResponse responsePost = Unirest
-            .post(baseUrl + "/posts")
-            .field("name", "test name 2")
-            .field("body", "test body 2")
-            .asEmpty();
+        String body = "name=test name 2&body=test body 2";
 
-        assertThat(responsePost.getStatus()).isEqualTo(302);
-        assertThat(responsePost.getHeaders().getFirst("Location")).isEqualTo("/posts");
+        JavalinTest.test(app, (server, client) -> {
+            var response = client.post("/posts", body);
+            assertThat(response.code()).isEqualTo(200);
+        });
 
-        HttpResponse<String> response = Unirest
-            .get(baseUrl + "/posts")
-            .asString();
-        String body = response.getBody();
-        assertThat(body).contains("test name 2");
-        assertThat(body).contains("test body 2");
+        var post = PostRepository.findByName("test name 2").orElse(null);
 
-        var post = PostRepository.findByName("test name 2");
         assertThat(post).isNotNull();
+        assertThat(post.getName()).isEqualTo("test name 2");
     }
 
     @Test
     void testShowPost() throws Exception {
-        HttpResponse<String> response = Unirest
-            .get(baseUrl + "/posts/" + existingPost.getId())
-            .asString();
-        String body = response.getBody();
-        assertThat(body).contains(existingPost.getName());
-        assertThat(body).contains(existingPost.getBody());
-        assertThat(body).contains("posts/" + existingPost.getId() + "/edit");
+        JavalinTest.test(app, (server, client) -> {
+            var response = client.get("/posts/" + existingPost.getId());
+            assertThat(response.code()).isEqualTo(200);
+            assertThat(response.body().string()).contains(existingPost.getName());
+        });
     }
 
     @Test
     void testCreatePostNegative() throws Exception {
-        HttpResponse responsePost = Unirest
-            .post(baseUrl + "/posts")
-            .field("name", "test name")
-            .field("body", "test")
-            .asEmpty();
 
-        assertThat(responsePost.getStatus()).isEqualTo(422);
+        String body = "name=test name&body=test";
+
+        JavalinTest.test(app, (server, client) -> {
+            var response = client.post("/posts", body);
+            assertThat(response.code()).isEqualTo(422);
+        });
     }
 
     @Test
     void testEditPost() throws Exception {
-        HttpResponse<String> response = Unirest
-            .get(baseUrl + "/posts/" + existingPost.getId() + "/edit").asString();
-        assertThat(response.getStatus()).isEqualTo(200);
+
+        JavalinTest.test(app, (server, client) -> {
+            var response = client.get("/posts/" + existingPost.getId() + "/edit");
+            assertThat(response.code()).isEqualTo(200);
+        });
     }
 
     @Test
     void testUpdatePost() throws Exception {
-        HttpResponse<String> responsePost = Unirest
-            .post(baseUrl + "/posts/" + existingPost.getId())
-            .field("name", "new name")
-            .field("body", "test content")
-            .asString();
+        String body = "name=new name&body=test content";
 
-        assertThat(responsePost.getStatus()).isEqualTo(302);
-        assertThat(PostRepository.existsByName("new name")).isEqualTo(true);
+        JavalinTest.test(app, (server, client) -> {
+            var response = client.post("/posts/" + existingPost.getId(), body);
+            assertThat(response.code()).isEqualTo(200);
+
+            var actualPost = PostRepository.find(existingPost.getId())
+                .orElse(null);
+            assertThat(actualPost).isNotNull();
+            assertThat(actualPost.getName()).isEqualTo("new name");
+            assertThat(actualPost.getBody()).isEqualTo("test content");
+        });
     }
 
     @Test
     void testUpdatePostNegative() throws Exception {
-        HttpResponse<String> responsePost = Unirest
-            .post(baseUrl + "/posts/" + existingPost.getId())
-            .field("name", "q")
-            .field("body", "test content")
-            .asString();
 
-        assertThat(responsePost.getStatus()).isEqualTo(422);
+        String body = "name=q&body=test content";
 
-        String body = responsePost.getBody();
-        assertThat(body).contains("q");
-        assertThat(body).contains("test content");
+        JavalinTest.test(app, (server, client) -> {
+            var response = client.post("/posts/" + existingPost.getId(), body);
+            assertThat(response.code()).isEqualTo(422);
+            assertThat(response.body().string()).contains("q", "test content");
 
-        assertThat(PostRepository.existsByName("q")).isEqualTo(false);
+            var actualPost = PostRepository.find(existingPost.getId())
+                .orElse(null);
+            assertThat(actualPost).isNotNull();
+            assertThat(actualPost.getName()).isEqualTo(existingPost.getName());
+            assertThat(actualPost.getBody()).isEqualTo(existingPost.getBody());
+        });
     }
 
     @Test
     void testPostNotFound() throws Exception {
-        HttpResponse<String> response = Unirest
-            .get(baseUrl + "/posts/" + existingPost.getId() + 999 + "/edit").asString();
-        assertThat(response.getStatus()).isEqualTo(404);
+        JavalinTest.test(app, (server, client) -> {
+            var response = client.get("/posts/999/edit");
+            assertThat(response.code()).isEqualTo(404);
+        });
     }
 }

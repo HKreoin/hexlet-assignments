@@ -11,12 +11,8 @@ public class PostRepository {
     public static void save(Post post) {
         if (post.getId() == null) {
             post.setId((long) entities.size() + 1);
-        } else {
-            entities = entities.stream()
-                .filter(entity -> entity.getId() != post.getId())
-                .toList();
+            entities.add(post);
         }
-        entities.add(post);
     }
 
     public static List<Post> search(String term) {
