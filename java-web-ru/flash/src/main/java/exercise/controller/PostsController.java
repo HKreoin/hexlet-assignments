@@ -21,14 +21,14 @@ public class PostsController {
     // BEGIN
     public static void create(Context ctx) {
         try {
-        String name = ctx.formParamAsClass("name", String.class)
+            String name = ctx.formParamAsClass("name", String.class)
             .check(value -> value.length() >= 2, "Название не должно быть короче двух символов")
             .get();
-        String body = ctx.formParam("body");
-        var post = new Post(name, body);
-        PostRepository.save(post);
-        ctx.sessionAttribute("flash", "Пост был успешно создан!");
-        ctx.redirect(NamedRoutes.postsPath());
+            String body = ctx.formParam("body");
+            var post = new Post(name, body);
+            PostRepository.save(post);
+            ctx.sessionAttribute("flash", "Пост был успешно создан!");
+            ctx.redirect(NamedRoutes.postsPath());
 
         } catch (ValidationException e) {
             var name = ctx.formParam("name");
